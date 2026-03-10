@@ -152,6 +152,25 @@ react.when_some(maybe_user, fn(user) {
 })
 ```
 
+## Build Scripts
+
+glendix에 내장된 빌드 스크립트로, 위젯 프로젝트에서 별도 스크립트 파일 없이 `gleam run -m`으로 실행한다.
+
+| 명령어 | 설명 |
+|--------|------|
+| `gleam run -m glendix/install` | 의존성 설치 (PM 자동 감지) |
+| `gleam run -m glendix/build` | 프로덕션 빌드 (.mpk 생성) |
+| `gleam run -m glendix/dev` | 개발 서버 (HMR, port 3000) |
+| `gleam run -m glendix/start` | Mendix 테스트 프로젝트 연동 |
+| `gleam run -m glendix/lint` | ESLint 실행 |
+| `gleam run -m glendix/lint_fix` | ESLint 자동 수정 |
+| `gleam run -m glendix/release` | 릴리즈 빌드 |
+
+패키지 매니저는 lock 파일 기반으로 자동 감지된다:
+- `pnpm-lock.yaml` → pnpm
+- `bun.lockb` / `bun.lock` → bun
+- 기본값 → npm
+
 ## Architecture
 
 ```
@@ -179,6 +198,15 @@ glendix/
     icon.gleam           ← Icon
     formatter.gleam      ← ValueFormatter
     filter.gleam         ← FilterCondition 빌더
+  cmd.gleam              ← 셸 명령어 실행 + PM 감지
+  cmd_ffi.mjs            ← Node.js child_process + fs FFI
+  build.gleam            ← 빌드 스크립트
+  dev.gleam              ← 개발 서버 스크립트
+  start.gleam            ← Mendix 연동 스크립트
+  install.gleam          ← 의존성 설치 스크립트
+  release.gleam          ← 릴리즈 빌드 스크립트
+  lint.gleam             ← ESLint 스크립트
+  lint_fix.gleam         ← ESLint 자동 수정 스크립트
 ```
 
 ## Design Principles

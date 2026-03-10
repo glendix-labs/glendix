@@ -49,6 +49,15 @@ src/glendix/
 │   ├── hook.gleam            # useState, useEffect, useMemo, useCallback, useRef
 │   ├── event.gleam           # 이벤트 타입 + target_value, prevent_default, key
 │   └── html.gleam            # HTML 태그 편의 함수 (순수 Gleam, FFI 없음)
+├── cmd.gleam                 # 셸 명령어 실행 + PM 감지 + 브릿지 자동 생성 (exec, detect_runner, run_tool, run_tool_with_bridge)
+├── cmd_ffi.mjs               # Node.js child_process + fs FFI 어댑터 (exec, file_exists, run_with_bridge)
+├── build.gleam               # gleam run -m glendix/build (프로덕션 빌드)
+├── dev.gleam                 # gleam run -m glendix/dev (개발 서버)
+├── start.gleam               # gleam run -m glendix/start (Mendix 연동)
+├── install.gleam             # gleam run -m glendix/install (의존성 설치)
+├── release.gleam             # gleam run -m glendix/release (릴리즈 빌드)
+├── lint.gleam                # gleam run -m glendix/lint (ESLint)
+├── lint_fix.gleam            # gleam run -m glendix/lint_fix (ESLint 자동 수정)
 ├── mendix.gleam              # ValueStatus, ObjectItem, JsProps 접근자
 ├── mendix_ffi.mjs            # Mendix 런타임 타입 접근 어댑터
 └── mendix/
@@ -66,6 +75,17 @@ src/glendix/
     ├── formatter.gleam        # ValueFormatter (format, parse)
     └── filter.gleam           # FilterCondition 빌더 (mendix/filters/builders 래핑)
 ```
+
+## 빌드 스크립트
+
+`glendix/cmd` 모듈이 셸 명령어 실행과 패키지 매니저 감지를 담당한다. `cmd_ffi.mjs`가 Node.js `child_process.execSync`와 `fs.existsSync`를 제공한다.
+
+PM 감지 메커니즘:
+- `pnpm-lock.yaml` 존재 → pnpm
+- `bun.lockb` 또는 `bun.lock` 존재 → bun
+- 그 외 → npm (기본값)
+
+`run_tool(args)` 함수가 감지된 runner + `pluggable-widgets-tools` + args를 조합하여 실행한다. `run_tool_with_bridge(args)`는 `package.json`의 `widgetName`과 `gleam.toml`의 `name`을 읽어 브릿지 JS 파일(`src/{WidgetName}.js`, `src/{WidgetName}.editorConfig.js`, `src/{WidgetName}.editorPreview.js`)을 자동 생성하고, 명령 완료 후 삭제한다. editorConfig과 editorPreview 브릿지는 각각 `src/editor_config.gleam`, `src/editor_preview.gleam` 존재 시에만 생성된다. 7개 스크립트 모듈(`build`, `dev`, `start`, `install`, `release`, `lint`, `lint_fix`)은 각각 `pub fn main()`을 노출하여 `gleam run -m glendix/<name>`으로 실행한다.
 
 ## 새 모듈 추가 시 패턴
 
@@ -90,7 +110,7 @@ pub fn is_available(obj: MyType) -> Bool {
 
 ### FFI 어댑터 (.mjs)
 ```javascript
-// 기존 mendix_ffi.mjs 또는 react_ffi.mjs에 추가
+// 기존 mendix_ffi.mjs, react_ffi.mjs, 또는 cmd_ffi.mjs에 추가
 // Option 변환이 필요하면 to_option/from_option 사용
 // List 변환이 필요하면 toList/toArray 사용
 export function get_my_value(obj) {
