@@ -1,5 +1,23 @@
+# Gleam
 *.beam
 *.ez
 /build
 erl_crash.dump
+
+# Node
 node_modules
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.*

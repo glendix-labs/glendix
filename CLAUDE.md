@@ -1,0 +1,134 @@
+# CLAUDE.md — glendix
+
+## 프로젝트 개요
+
+Gleam FFI 라이브러리. React 19 + Mendix Pluggable Widget API 바인딩을 제공한다.
+JSX 없이 순수 Gleam으로 Mendix Pluggable Widget을 작성하는 것이 목적이다.
+
+- 언어: **Gleam** (target: JavaScript)
+- 빌드: `gleam build` / `gleam check`
+- 의존성: `gleam_stdlib >= 0.44.0`
+- Peer deps (위젯 프로젝트 측): `react ^19.0.0`, `big.js ^6.0.0`
+- 라이선스: Apache-2.0
+
+## Gleam 언어 레퍼런스
+
+Gleam 문법과 언어 기능은 `./docs/gleam_language_tour.md`를 참조한다.
+
+## 핵심 아키텍처 규칙
+
+### FFI 경계 원칙 (절대 준수)
+
+1. **FFI 어댑터는 얇게 유지한다.** `.mjs` 파일은 JS 런타임 접근만 담당하고, 비즈니스 로직/변환 로직은 반드시 `.gleam`에 작성한다.
+2. **Opaque type으로 JS 값을 감싼다.** `ReactElement`, `JsProps`, `EditableValue` 등은 모두 opaque type이다. 내부 구조를 직접 접근하지 않는다.
+3. **`undefined`/`null` ↔ `Option` 자동 변환.** FFI 경계에서 `to_option()`/`from_option()`으로 변환한다. Gleam 쪽에서 `undefined`를 직접 다루지 않는다.
+4. **Gleam 튜플 = JS 배열.** `#(a, b)` = `[a, b]` 호환성을 활용한다 (예: `useState` 반환값).
+5. **Gleam List ↔ JS Array 변환.** FFI 경계에서 `toList()`/`.toArray()`로 변환한다.
+
+### 코드 작성 규칙
+
+- **파이프라인 API**: Props는 `prop.new() |> prop.class("x") |> prop.on_click(handler)` 패턴
+- **조건부 렌더링**: `react.when(bool, fn)`, `react.when_some(option, fn)` — if/else 대신 사용
+- **`@external` 어노테이션**: FFI 함수 선언 시 상대 경로로 `.mjs` 파일 참조
+- **한국어 주석**: 주석과 doc comment는 한국어로 작성
+- **모듈별 단일 책임**: 각 `.gleam` 파일은 하나의 Mendix/React 타입을 담당
+
+### Date 모듈 주의사항
+
+`glendix/mendix/date`에서 **월(month)은 1-based**(1=1월). JS의 0-based를 FFI에서 자동 변환한다.
+이 변환은 `mendix_ffi.mjs`의 `date_create`와 `date_get_month`에서 처리된다.
+
+## 소스 구조
+
+```
+src/glendix/
+├── react.gleam              # 핵심 타입 + el, fragment, text, none, when, when_some
+├── react_ffi.mjs            # React 원시 함수 어댑터
+├── react/
+│   ├── prop.gleam            # Props 파이프라인 빌더
+│   ├── hook.gleam            # useState, useEffect, useMemo, useCallback, useRef
+│   ├── event.gleam           # 이벤트 타입 + target_value, prevent_default, key
+│   └── html.gleam            # HTML 태그 편의 함수 (순수 Gleam, FFI 없음)
+├── mendix.gleam              # ValueStatus, ObjectItem, JsProps 접근자
+├── mendix_ffi.mjs            # Mendix 런타임 타입 접근 어댑터
+└── mendix/
+    ├── editable_value.gleam  # EditableValue (읽기/쓰기/유효성)
+    ├── action.gleam          # ActionValue (실행/상태)
+    ├── dynamic_value.gleam   # DynamicValue (표현식 속성)
+    ├── list_value.gleam      # ListValue + SortInstruction + FilterCondition
+    ├── list_attribute.gleam   # 리스트 아이템별 속성/액션/위젯 접근
+    ├── selection.gleam        # 단일/다중 선택
+    ├── reference.gleam        # 연관 참조 (단일/다중)
+    ├── date.gleam             # JS Date 래퍼 (월 1-based)
+    ├── big.gleam              # Big.js 래퍼 (compare → gleam/order)
+    ├── file.gleam             # FileValue, WebImage
+    ├── icon.gleam             # WebIcon (Glyph, Image, IconFont)
+    ├── formatter.gleam        # ValueFormatter (format, parse)
+    └── filter.gleam           # FilterCondition 빌더 (mendix/filters/builders 래핑)
+```
+
+## 새 모듈 추가 시 패턴
+
+### Gleam 모듈 (.gleam)
+```gleam
+// [한국어 설명]
+
+import glendix/mendix  // 필요한 내부 import
+
+// opaque type 선언
+pub type MyType
+
+// FFI 바인딩 — getter
+@external(javascript, "../mendix_ffi.mjs", "get_my_value")
+pub fn value(obj: MyType) -> a
+
+// 순수 Gleam 헬퍼 (FFI 불필요한 로직)
+pub fn is_available(obj: MyType) -> Bool {
+  mendix.get_status(obj) == mendix.Available
+}
+```
+
+### FFI 어댑터 (.mjs)
+```javascript
+// 기존 mendix_ffi.mjs 또는 react_ffi.mjs에 추가
+// Option 변환이 필요하면 to_option/from_option 사용
+// List 변환이 필요하면 toList/toArray 사용
+export function get_my_value(obj) {
+  return to_option(obj.value);
+}
+```
+
+## Mendix Pluggable Widget API 레퍼런스
+
+Mendix 공식 문서(docs.mendix.com)는 접근 불가하므로 GitHub raw 소스 사용:
+
+### 문서 (GitHub)
+- **Base**: `https://github.com/mendix/docs/blob/development/content/en/docs`
+- **Pluggable Widgets API**: `apidocs-mxsdk/apidocs/pluggable-widgets/`
+  - Property types, Client APIs, ListValue APIs 등
+- **How-to (위젯 빌드 튜토리얼)**: `howto/extensibility/`
+  - `create-a-pluggable-widget-one.md`, `create-a-pluggable-widget-two.md`
+
+### 소스 코드 (GitHub)
+- **Widget 빌드 도구**: `https://github.com/mendix/widgets-tools`
+  - Rollup 설정, widget XML 스키마, 빌드 파이프라인
+- **공식 위젯 예제**: `https://github.com/mendix/web-widgets`
+  - `packages/pluggableWidgets/` 아래 실제 프로덕션 위젯 코드
+  - 파일 구조, 테스트 패턴, XML 속성 정의 참고
+
+### Mendix 위젯 핵심 개념
+- 위젯 진입점: `fn(JsProps) -> ReactElement`
+- Props는 `.xml` 파일에 정의한 속성이 런타임에 주입됨
+- `ValueStatus`: `Available | Loading | Unavailable` — 값을 읽기 전에 반드시 확인
+- `EditableValue.setValue()`: 값 변경, `ActionValue.execute()`: Microflow/Nanoflow 실행
+- `ListValue`: 페이징(`offset`/`limit`), 정렬(`setSortOrder`), 필터(`setFilter`) 지원
+- 외부 모듈 `mendix/filters/builders`는 Rollup에서 external 처리 필요
+
+## 자주 하는 실수 (반드시 피할 것)
+
+- FFI `.mjs` 파일에 비즈니스 로직을 넣지 않는다
+- Gleam에서 JS `undefined`를 직접 다루지 않는다 — 반드시 `Option`으로 변환
+- `html.gleam`은 순수 Gleam이다 — FFI 함수를 추가하지 않는다
+- `date.gleam`의 month를 JS 0-based로 전달하지 않는다 — FFI가 자동 변환함
+- `prop.class()`를 쓰고 `prop.string("className", ...)`도 쓰면 충돌한다
+- `react.none()` 대신 빈 문자열이나 빈 리스트로 "아무것도 안 보여주기"를 하지 않는다
