@@ -171,31 +171,54 @@ named import를 사용하므로 Rollup tree-shaking이 가능하다.
 1. `widgets/` 디렉토리에 `.mpk` 파일을 배치한다
 2. `gleam run -m glendix/install` 실행 시:
    - `.mpk`에서 `.mjs`/`.css`를 추출하고 `widget_ffi.mjs`를 생성한다
-   - `.mpk` XML의 `<property>` 정의를 부모 위젯 XML(`src/{WidgetName}.xml`)에 `<propertyGroup caption="{위젯명}">` 으로 자동 주입한다
-   - 동일 caption의 `<propertyGroup>`이 이미 있으면 주입을 건너뛴다
-3. 생성된 파일은 glendix 빌드 경로에 배치된다
+   - `.mpk` XML의 `<property>` 정의를 파싱하여 `src/widgets/`에 바인딩 `.gleam` 파일을 자동 생성한다
+   - 이미 동일 이름의 `.gleam` 파일이 존재하면 생성을 건너뛴다 (사용자 수정 보호)
+3. 생성된 `widget_ffi.mjs`와 에셋은 glendix 빌드 경로에 배치된다
 4. `run_with_bridge` (build/dev/start) 실행 시에도 자동 갱신된다
+
+### 자동 생성되는 .gleam 파일 (src/widgets/)
+
+`.mpk` XML의 `<property>` 정의에서 `key`와 `required` 속성을 파싱하여 바인딩 코드를 생성한다. 위젯 이름은 snake_case로 변환된다 ("Progress Bar" → `progress_bar.gleam`, "Switch" → `switch.gleam`).
+
+```gleam
+// Switch 위젯 바인딩 컴포넌트
+
+import glendix/mendix
+import glendix/react.{type JsProps, type ReactElement}
+import glendix/react/attribute
+import glendix/widget
+
+/// Switch 위젯 렌더링 - props에서 속성을 읽어 위젯에 전달
+pub fn render(props: JsProps) -> ReactElement {
+  let boolean_attribute = mendix.get_prop_required(props, "booleanAttribute")
+  let action = mendix.get_prop_required(props, "action")
+
+  let comp = widget.component("Switch")
+  react.component_el(
+    comp,
+    [
+      attribute.attribute("booleanAttribute", boolean_attribute),
+      attribute.attribute("action", action),
+    ],
+    [],
+  )
+}
+```
+
+optional 속성이 있으면 `optional_attr` 헬퍼와 `gleam/option` import가 자동 추가된다. Gleam 예약어(`type` 등)는 접미사 `_`로 회피한다.
 
 ### 사용자 코드
 
+생성된 `src/widgets/*.gleam` 파일을 import하여 사용한다. 필요에 따라 자유롭게 수정 가능하다.
+
 ```gleam
-import glendix/mendix
-import glendix/widget
-import glendix/react
-import glendix/react/attribute
+import widgets/switch
 
-// props에서 자동 주입된 속성을 읽어 위젯에 전달
-let boolean_attr = mendix.get_prop_required(props, "booleanAttribute")
-let action = mendix.get_prop_required(props, "action")
-
-let switch_comp = widget.component("Switch")
-react.component_el(switch_comp, [
-  attribute.attribute("booleanAttribute", boolean_attr),
-  attribute.attribute("action", action),
-], [])
+// 컴포넌트 내부에서
+switch.render(props)
 ```
 
-위젯 Props는 기존 `attribute.attribute(key, value)` 범용 함수로 전달한다. 위젯 이름은 `.mpk` 내부 XML의 `<name>` 태그 값(PascalCase)을 그대로 사용한다. property key는 `.mpk` XML의 원본 key를 그대로 사용한다.
+위젯 Props는 기존 `attribute.attribute(key, value)` 범용 함수로 전달한다. 위젯 이름은 `.mpk` 내부 XML의 `<name>` 태그 값을 그대로 사용한다. property key는 `.mpk` XML의 원본 key를 그대로 사용한다.
 
 ## 새 모듈 추가 시 패턴
 

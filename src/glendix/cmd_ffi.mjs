@@ -152,76 +152,123 @@ function toSafeIdentifier(name) {
   return name.replace(/[^a-zA-Z0-9_$]/g, "");
 }
 
-// 위젯 XML에서 <property> 요소를 추출한다 (<systemProperty> 제외)
-function extractProperties(widgetXml) {
+// 위젯 XML에서 속성 정보(key, required)를 파싱한다
+function parseProperties(widgetXml) {
   const properties = [];
-  const regex = /<property\s+[^>]*(?:\/>|>[\s\S]*?<\/property>)/g;
+  const regex = /<property\s+([^>]*)(?:\/>|>[\s\S]*?<\/property>)/g;
   let match;
   while ((match = regex.exec(widgetXml)) !== null) {
-    properties.push(match[0]);
+    const attrs = match[1];
+    const keyMatch = attrs.match(/key="([^"]+)"/);
+    const requiredMatch = attrs.match(/required="([^"]+)"/);
+    if (keyMatch) {
+      properties.push({
+        key: keyMatch[1],
+        required: requiredMatch ? requiredMatch[1] === "true" : false,
+      });
+    }
   }
   return properties;
 }
 
-// XML 블록의 들여쓰기를 정규화한다
-// regex 캡처 특성상 첫 줄은 들여쓰기 없이 시작하므로 분리 처리한다
-function reindent(xml, indent) {
-  const lines = xml.split("\n");
-  if (lines.length <= 1) return " ".repeat(indent) + xml.trim();
-
-  // 첫 줄 제외한 나머지에서 최소 들여쓰기 계산
-  let minIndent = Infinity;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === "") continue;
-    const m = lines[i].match(/^(\s*)/);
-    if (m[1].length < minIndent) minIndent = m[1].length;
-  }
-  if (minIndent === Infinity) minIndent = 0;
-
-  return lines
-    .map((line, i) => {
-      if (line.trim() === "") return "";
-      if (i === 0) return " ".repeat(indent) + line.trim();
-      return " ".repeat(indent) + line.substring(minIndent);
-    })
-    .join("\n");
+// camelCase → snake_case 변환
+function toSnakeCase(str) {
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase();
 }
 
-// 부모 위젯 XML에 .mpk 위젯의 속성을 주입한다
-function injectWidgetPropertiesToXml(widgetName, widgetXml) {
-  let packageJson;
-  try {
-    packageJson = JSON.parse(readFileSync("package.json", "utf-8"));
-  } catch {
-    return;
+// 위젯 이름 → Gleam 모듈 파일명 ("Progress Bar" → "progress_bar", "Switch" → "switch")
+function toModuleFileName(name) {
+  return name
+    .replace(/\s+/g, "_")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase();
+}
+
+const GLEAM_KEYWORDS = new Set([
+  "as", "assert", "auto", "case", "const", "delegate", "derive", "echo",
+  "else", "fn", "if", "implement", "import", "let", "macro", "opaque",
+  "panic", "pub", "return", "test", "todo", "type", "use",
+]);
+
+// 속성 key를 Gleam 변수명으로 변환 (snake_case + 예약어 회피)
+function toGleamVar(key) {
+  const snake = toSnakeCase(key);
+  return GLEAM_KEYWORDS.has(snake) ? snake + "_" : snake;
+}
+
+// .mpk 위젯의 .gleam 바인딩 파일을 src/widgets/에 생성한다
+function generateWidgetGleamFile(widgetName, widgetXml) {
+  const props = parseProperties(widgetXml);
+  if (props.length === 0) return;
+
+  const requiredProps = props.filter((p) => p.required);
+  const optionalProps = props.filter((p) => !p.required);
+  const hasOptional = optionalProps.length > 0;
+  const moduleFileName = toModuleFileName(widgetName);
+  const filePath = `src/widgets/${moduleFileName}.gleam`;
+
+  // 이미 존재하면 덮어쓰지 않는다
+  if (existsSync(filePath)) return;
+
+  // 디렉토리 생성
+  if (!existsSync("src/widgets")) {
+    mkdirSync("src/widgets", { recursive: true });
   }
 
-  const parentWidgetName = packageJson.widgetName;
-  const xmlPath = `src/${parentWidgetName}.xml`;
-  if (!existsSync(xmlPath)) return;
+  // import 섹션
+  let imports = "";
+  if (hasOptional) {
+    imports += "import gleam/option.{None, Some}\n";
+  }
+  imports += "import glendix/mendix\n";
+  imports += "import glendix/react.{type JsProps, type ReactElement}\n";
+  imports += "import glendix/react/attribute\n";
+  imports += "import glendix/widget\n";
 
-  let xml = readFileSync(xmlPath, "utf-8");
+  // render 함수 본문
+  let body = "";
+  for (const prop of requiredProps) {
+    body += `  let ${toGleamVar(prop.key)} = mendix.get_prop_required(props, "${prop.key}")\n`;
+  }
 
-  // 이미 동일 caption의 propertyGroup이 있으면 건너뛴다
-  const escapedName = widgetName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  if (new RegExp(`<propertyGroup\\s+caption="${escapedName}"`).test(xml)) return;
+  body += `\n  let comp = widget.component("${widgetName}")\n`;
+  body += "  react.component_el(\n    comp,\n    [\n";
 
-  // <property> 추출
-  const properties = extractProperties(widgetXml);
-  if (properties.length === 0) return;
+  for (const prop of requiredProps) {
+    body += `      attribute.attribute("${prop.key}", ${toGleamVar(prop.key)}),\n`;
+  }
+  for (const prop of optionalProps) {
+    body += `      optional_attr(props, "${prop.key}"),\n`;
+  }
 
-  // 들여쓰기 정규화 (12칸 — propertyGroup 내부)
-  const indented = properties.map((p) => reindent(p, 12)).join("\n");
-  const newGroup =
-    `        <propertyGroup caption="${widgetName}">\n` +
-    indented +
-    "\n" +
-    `        </propertyGroup>`;
+  body += "    ],\n    [],\n  )\n";
 
-  // </properties> 앞에 삽입
-  xml = xml.replace(/(\s*<\/properties>)/, "\n" + newGroup + "$1");
-  writeFileSync(xmlPath, xml);
-  console.log(`위젯 속성 주입 완료: ${widgetName} → ${xmlPath}`);
+  // 파일 내용 조합
+  let content = `// ${widgetName} 위젯 바인딩 컴포넌트\n\n`;
+  content += imports;
+  content += "\n";
+  content += `/// ${widgetName} 위젯 렌더링 - props에서 속성을 읽어 위젯에 전달\n`;
+  content += "pub fn render(props: JsProps) -> ReactElement {\n";
+  content += body;
+  content += "}\n";
+
+  if (hasOptional) {
+    content += "\n";
+    content += "/// optional prop을 조건부 attribute로 변환\n";
+    content += "fn optional_attr(props: JsProps, key: String) -> attribute.Attribute {\n";
+    content += "  case mendix.get_prop(props, key) {\n";
+    content += "    Some(val) -> attribute.attribute(key, val)\n";
+    content += "    None -> attribute.none()\n";
+    content += "  }\n";
+    content += "}\n";
+  }
+
+  writeFileSync(filePath, content);
+  console.log(`위젯 바인딩 Gleam 파일 생성: ${filePath}`);
 }
 
 // widgets/ 디렉토리의 .mpk에서 위젯 바인딩을 생성한다
@@ -279,8 +326,8 @@ export function generate_widget_bindings() {
       const mjsContent = readZipEntry(buf, mjsEntry);
       const cssContent = cssEntry ? readZipEntry(buf, cssEntry) : null;
 
-      // 부모 위젯 XML에 속성 주입
-      injectWidgetPropertiesToXml(widgetName, widgetXml);
+      // 위젯 바인딩 .gleam 파일 생성
+      generateWidgetGleamFile(widgetName, widgetXml);
 
       const safeId = toSafeIdentifier(widgetName);
       widgets.push({ name: widgetName, safeId, mjsContent, cssContent });
