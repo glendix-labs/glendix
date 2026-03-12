@@ -120,6 +120,14 @@ export function get_code(e) {
   return e.code;
 }
 
+export function get_locale(e) {
+  return e.locale ?? "";
+}
+
+export function get_location(e) {
+  return e.location;
+}
+
 // === 마우스 추가 접근자 ===
 
 export function get_screen_x(e) {
@@ -268,6 +276,32 @@ export function get_pointer_type(e) {
 
 export function get_is_primary(e) {
   return e.isPrimary;
+}
+
+export function get_tangential_pressure(e) {
+  return e.tangentialPressure;
+}
+
+export function get_altitude_angle(e) {
+  return e.altitudeAngle;
+}
+
+export function get_azimuth_angle(e) {
+  return e.azimuthAngle;
+}
+
+export function get_twist(e) {
+  return e.twist;
+}
+
+// === UI 이벤트 ===
+
+export function get_detail(e) {
+  return e.detail;
+}
+
+export function get_view(e) {
+  return e.view;
 }
 
 // === 이벤트 유틸리티 ===

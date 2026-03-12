@@ -1,5 +1,6 @@
 // React Hooks - useState, useEffect 등
 
+import gleam/dynamic.{type Dynamic}
 import gleam/option.{type Option, None}
 import glendix/react.{type Context, type Promise, type Ref}
 
@@ -173,6 +174,10 @@ pub fn use_id() -> String
 @external(javascript, "./hook_ffi.mjs", "use_transition")
 pub fn use_transition() -> #(Bool, fn(fn() -> Nil) -> Nil)
 
+/// 비동기 트랜지션 (React 19) — startTransition이 async 콜백 수용
+@external(javascript, "./hook_ffi.mjs", "use_transition")
+pub fn use_async_transition() -> #(Bool, fn(fn() -> Promise(Nil)) -> Nil)
+
 // === useDeferredValue ===
 
 /// 값 지연 처리
@@ -244,3 +249,28 @@ pub fn use_debug_value_(value: a, format: fn(a) -> String) -> Nil
 /// Promise가 미완료 시 React가 Suspense 폴백을 표시한다
 @external(javascript, "./hook_ffi.mjs", "use_promise")
 pub fn use_promise(promise: Promise(a)) -> a
+
+// === useFormStatus (React 19 — react-dom) ===
+
+/// 폼 제출 상태 객체
+pub type FormStatus
+
+/// 가장 가까운 <form> 부모의 제출 상태 반환 (React 19)
+@external(javascript, "./hook_ffi.mjs", "use_form_status")
+pub fn use_form_status() -> FormStatus
+
+/// 폼이 현재 제출 중인지 여부
+@external(javascript, "./hook_ffi.mjs", "get_form_status_pending")
+pub fn form_pending(status: FormStatus) -> Bool
+
+/// 제출된 FormData (제출 중이 아닌 경우 None)
+@external(javascript, "./hook_ffi.mjs", "get_form_status_data")
+pub fn form_data(status: FormStatus) -> Option(Dynamic)
+
+/// HTTP 메서드 (get 또는 post)
+@external(javascript, "./hook_ffi.mjs", "get_form_status_method")
+pub fn form_method(status: FormStatus) -> String
+
+/// 폼의 action 함수 참조 (없으면 None)
+@external(javascript, "./hook_ffi.mjs", "get_form_status_action")
+pub fn form_action(status: FormStatus) -> Option(Dynamic)

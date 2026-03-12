@@ -49,10 +49,10 @@ src/glendix/
 ├── react/
 │   ├── attribute.gleam       # Attribute 타입 + 108+ HTML 속성 함수 (class, id, style, dangerouslySetInnerHTML, inputMode, inert, popover, fetchPriority 등)
 │   ├── attribute_ffi.mjs     # Attribute → React props 변환 (className 자동 병합, style camelCase, dangerouslySetInnerHTML)
-│   ├── hook.gleam            # useState, useEffect, useLayoutEffect, useInsertionEffect, useMemo, useCallback, useRef, useReducer, useContext, useId, useTransition, useDeferredValue, useOptimistic, useOptimistic_, useImperativeHandle, useLazyState, useSyncExternalStore, useDebugValue, use_promise (React.use)
+│   ├── hook.gleam            # useState, useEffect, useLayoutEffect, useInsertionEffect, useMemo, useCallback, useRef, useReducer, useContext, useId, useTransition, useAsyncTransition, useDeferredValue, useOptimistic, useOptimistic_, useImperativeHandle, useLazyState, useSyncExternalStore, useDebugValue, use_promise (React.use), useFormStatus
 │   ├── hook_ffi.mjs          # React Hooks FFI 어댑터
 │   ├── ref.gleam             # Ref 접근자 (current, assign) — hook에서 분리
-│   ├── event.gleam           # 15개 이벤트 타입 + 154+ 핸들러 Attribute (캡처 단계 포함, 컴포지션/미디어/UI/로드/에러/트랜지션 이벤트) + 67+ 접근자
+│   ├── event.gleam           # 16개 이벤트 타입 + 154+ 핸들러 Attribute (캡처 단계 포함, 컴포지션/미디어/UI/로드/에러/트랜지션 이벤트) + 82+ 접근자
 │   ├── event_ffi.mjs         # React 이벤트 접근자 FFI 어댑터
 │   ├── html.gleam            # 85+ HTML 태그 편의 함수 (순수 Gleam, FFI 없음)
 │   ├── svg.gleam             # 58 SVG 요소 편의 함수 (순수 Gleam, FFI 없음)

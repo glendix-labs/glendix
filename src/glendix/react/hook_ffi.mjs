@@ -1,5 +1,7 @@
 // React Hooks FFI 어댑터
 import * as React from "react";
+import { useFormStatus } from "react-dom";
+import { Some, None } from "../../../gleam_stdlib/gleam/option.mjs";
 
 // === useState ===
 
@@ -169,4 +171,30 @@ export function use_reducer_lazy(reducer, initial_arg, init) {
 
 export function use_promise(promise) {
   return React.use(promise);
+}
+
+// === useFormStatus (React 19 — react-dom) ===
+
+function to_option(value) {
+  return value != null ? new Some(value) : new None();
+}
+
+export function use_form_status() {
+  return useFormStatus();
+}
+
+export function get_form_status_pending(status) {
+  return status.pending;
+}
+
+export function get_form_status_data(status) {
+  return to_option(status.data);
+}
+
+export function get_form_status_method(status) {
+  return status.method;
+}
+
+export function get_form_status_action(status) {
+  return to_option(status.action);
 }

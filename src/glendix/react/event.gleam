@@ -35,6 +35,8 @@ pub type TransitionEvent
 
 pub type CompositionEvent
 
+pub type UIEvent
+
 // === 이벤트 핸들러 (Attribute 반환) ===
 
 /// 범용 이벤트 핸들러 (escape hatch)
@@ -591,6 +593,18 @@ pub fn repeat(event: KeyboardEvent) -> Bool
 @external(javascript, "./event_ffi.mjs", "get_code")
 pub fn code(event: KeyboardEvent) -> String
 
+/// 키보드 로케일 (브라우저 지원 제한적)
+@external(javascript, "./event_ffi.mjs", "get_locale")
+pub fn locale(event: KeyboardEvent) -> String
+
+/// 키 위치 (0=표준, 1=좌측, 2=우측, 3=넘패드)
+@external(javascript, "./event_ffi.mjs", "get_location")
+pub fn location(event: KeyboardEvent) -> Int
+
+/// 키보드 이벤트에서 modifier 키 상태 확인
+@external(javascript, "./event_ffi.mjs", "get_modifier_state")
+pub fn keyboard_get_modifier_state(event: KeyboardEvent, key: String) -> Bool
+
 // === 컴포지션 이벤트 핸들러 (CJK/IME 입력 — 한국어 입력에 필수) ===
 
 pub fn on_composition_start(
@@ -955,6 +969,22 @@ pub fn changed_touches(event: TouchEvent) -> Dynamic
 @external(javascript, "./event_ffi.mjs", "get_target_touches")
 pub fn target_touches(event: TouchEvent) -> Dynamic
 
+@external(javascript, "./event_ffi.mjs", "get_alt_key")
+pub fn touch_alt_key(event: TouchEvent) -> Bool
+
+@external(javascript, "./event_ffi.mjs", "get_ctrl_key")
+pub fn touch_ctrl_key(event: TouchEvent) -> Bool
+
+@external(javascript, "./event_ffi.mjs", "get_meta_key")
+pub fn touch_meta_key(event: TouchEvent) -> Bool
+
+@external(javascript, "./event_ffi.mjs", "get_shift_key")
+pub fn touch_shift_key(event: TouchEvent) -> Bool
+
+/// 터치 이벤트에서 modifier 키 상태 확인
+@external(javascript, "./event_ffi.mjs", "get_modifier_state")
+pub fn touch_get_modifier_state(event: TouchEvent, key: String) -> Bool
+
 // === 애니메이션 이벤트 접근자 ===
 
 @external(javascript, "./event_ffi.mjs", "get_animation_name")
@@ -1027,6 +1057,32 @@ pub fn pointer_type(event: PointerEvent) -> String
 
 @external(javascript, "./event_ffi.mjs", "get_is_primary")
 pub fn is_primary(event: PointerEvent) -> Bool
+
+/// 탄젠트 압력
+@external(javascript, "./event_ffi.mjs", "get_tangential_pressure")
+pub fn tangential_pressure(event: PointerEvent) -> Float
+
+/// 고도 각도
+@external(javascript, "./event_ffi.mjs", "get_altitude_angle")
+pub fn altitude_angle(event: PointerEvent) -> Int
+
+/// 방위 각도
+@external(javascript, "./event_ffi.mjs", "get_azimuth_angle")
+pub fn azimuth_angle(event: PointerEvent) -> Int
+
+/// 펜 회전 각도
+@external(javascript, "./event_ffi.mjs", "get_twist")
+pub fn twist(event: PointerEvent) -> Int
+
+// === UI 이벤트 접근자 ===
+
+/// 이벤트 상세 정보 (클릭 횟수 등)
+@external(javascript, "./event_ffi.mjs", "get_detail")
+pub fn detail(event: UIEvent) -> Int
+
+/// 이벤트가 발생한 window 객체
+@external(javascript, "./event_ffi.mjs", "get_view")
+pub fn view(event: UIEvent) -> Dynamic
 
 // === 이벤트 유틸리티 ===
 
