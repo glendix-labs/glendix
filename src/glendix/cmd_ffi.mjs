@@ -358,8 +358,9 @@ function generateClassicGleamFile(widgetName, widgetId, properties) {
   const hasOptional = optionalProps.length > 0;
 
   // import 섹션
-  let imports = "import gleam/dynamic\n";
+  let imports = "";
   if (hasOptional) {
+    imports += "import gleam/dynamic\n";
     imports += "import gleam/option.{None, Some}\n";
   }
   imports += "import glendix/classic\n";
@@ -375,7 +376,7 @@ function generateClassicGleamFile(widgetName, widgetId, properties) {
   body += `\n  classic.render("${widgetId}", [\n`;
 
   for (const prop of requiredProps) {
-    body += `    #("${prop.key}", dynamic.from(${toGleamVar(prop.key)})),\n`;
+    body += `    #("${prop.key}", classic.to_dynamic(${toGleamVar(prop.key)})),\n`;
   }
   for (const prop of optionalProps) {
     body += `    optional_prop(props, "${prop.key}"),\n`;
@@ -397,8 +398,8 @@ function generateClassicGleamFile(widgetName, widgetId, properties) {
     content += "/// optional prop을 #(key, Dynamic) 튜플로 변환\n";
     content += "fn optional_prop(props: JsProps, key: String) -> #(String, dynamic.Dynamic) {\n";
     content += "  case mendix.get_prop(props, key) {\n";
-    content += "    Some(val) -> #(key, dynamic.from(val))\n";
-    content += "    None -> #(key, dynamic.from(Nil))\n";
+    content += "    Some(val) -> #(key, classic.to_dynamic(val))\n";
+    content += "    None -> #(key, classic.to_dynamic(Nil))\n";
     content += "  }\n";
     content += "}\n";
   }

@@ -12,3 +12,7 @@ export function classic_widget_element_with_class(widget_id, properties, class_n
     `Classic 위젯 바인딩이 생성되지 않았습니다. 'gleam run -m glendix/install'을 실행하세요. (요청 위젯: ${widget_id})`,
   );
 }
+
+export function to_dynamic(value) {
+  return value;
+}
