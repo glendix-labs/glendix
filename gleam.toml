@@ -1,8 +1,8 @@
 name = "glendix"
-version = "2.0.11"
+version = "2.0.12"
 target = "javascript"
 description = "Gleam bindings for Mendix Pluggable Widget API + React"
-licences = ["Apache-2.0"]
+licences = ["BlueOak-1.0.0"]
 repository = { type = "github", user = "GG-O-BP", repo = "glendix" }
 
 [javascript]

@@ -24,6 +24,7 @@ Thumbs.db
 
 # AI
 /.claude
+!/.claude/rules/
 
 # Marketplace
 .marketplace-cache
