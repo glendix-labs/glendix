@@ -1,6 +1,6 @@
 // 셸 명령어 실행 + 파일 존재 확인 + 브릿지 자동 생성 + 바인딩 생성 FFI 어댑터
-import { execSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, readdirSync } from "node:fs";
+import { execSync, spawnSync, spawn } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { inflateRawSync } from "node:zlib";
 
 // gleam_erlang 패키지의 Unused value 경고 블록을 제거한다
@@ -60,6 +60,7 @@ export function exec(command) {
 export function file_exists(path) {
   return existsSync(path);
 }
+
 
 // bindings.json → binding_ffi.mjs 생성
 // glendix 빌드 경로에 직접 생성하여 사용자가 .mjs를 작성하지 않아도 되게 한다
@@ -967,15 +968,10 @@ export function generate_widget_bindings() {
   generateClassicFfi(classicWidgets);
 }
 
-// 브릿지 JS 파일을 자동 생성하고 명령 실행 후 삭제
-export function run_with_bridge(command) {
-  // 바인딩 자동 갱신 (bindings.json 있을 때만)
+// 브릿지 JS 파일을 생성하고 정리 함수를 반환한다
+function setupBridge() {
   generate_bindings();
-
-  // 위젯 바인딩 자동 갱신 (widgets/ 있을 때만)
   generate_widget_bindings();
-
-  // Gleam 빌드 출력 보장 (Rollup이 .mjs를 resolve할 수 있도록)
   execGleamFiltered("gleam build");
 
   const widgetName = JSON.parse(readFileSync("package.json", "utf-8")).widgetName;
@@ -985,7 +981,6 @@ export function run_with_bridge(command) {
   const editorBridge = `src/${widgetName}.editorConfig.js`;
   const previewBridge = `src/${widgetName}.editorPreview.js`;
 
-  // 위젯 브릿지 생성
   writeFileSync(
     widgetBridge,
     `// 자동 생성 브릿지 — 수동 편집 금지\n` +
@@ -994,7 +989,6 @@ export function run_with_bridge(command) {
     `export const ${widgetName} = widget;\n`,
   );
 
-  // editorConfig 브릿지 (src/widget/editor_config.gleam 존재 시만)
   const hasEditor = existsSync("src/editor_config.gleam");
   if (hasEditor) {
     writeFileSync(
@@ -1005,7 +999,6 @@ export function run_with_bridge(command) {
     );
   }
 
-  // editorPreview 브릿지 (src/editor_preview.gleam 존재 시만)
   const hasPreview = existsSync("src/editor_preview.gleam");
   if (hasPreview) {
     writeFileSync(
@@ -1019,12 +1012,18 @@ export function run_with_bridge(command) {
     );
   }
 
-  // SIGINT 핸들러 + try/finally로 정리 보장
   const cleanup = () => {
     try { unlinkSync(widgetBridge); } catch {}
     if (hasEditor) try { unlinkSync(editorBridge); } catch {}
     if (hasPreview) try { unlinkSync(previewBridge); } catch {}
   };
+
+  return { cleanup, widgetBridge };
+}
+
+// 브릿지 JS 파일을 자동 생성하고 명령 실행 후 삭제
+export function run_with_bridge(command) {
+  const { cleanup } = setupBridge();
   process.on("SIGINT", () => { cleanup(); process.exit(130); });
 
   try {
@@ -1032,4 +1031,92 @@ export function run_with_bridge(command) {
   } finally {
     cleanup();
   }
+}
+
+// 개발 모드: .gleam 변경 감지 + build:web 반복 실행
+// Rollup --watch를 사용하지 않는다 — Windows에서 chokidar watcher 설정이 2분+ 소요
+export function run_dev_with_bridge(buildCommand) {
+  const { cleanup } = setupBridge();
+
+  // Circular dependency 경고를 필터링하여 Rollup 빌드를 실행한다
+  function execBuild() {
+    const result = spawnSync(buildCommand, { shell: true, stdio: ["inherit", "pipe", "pipe"] });
+    if (result.stdout && result.stdout.length > 0) process.stdout.write(result.stdout);
+    if (result.stderr && result.stderr.length > 0) {
+      const filtered = result.stderr.toString()
+        .split(/\r?\n/)
+        .filter(line => !line.includes("Circular depend") && !line.includes("build/dev/javascript/gleam_stdlib") && !line.match(/^\.\.\.and \d+ more$/))
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      if (filtered) process.stderr.write(filtered + "\n");
+    }
+    if (result.status !== 0) throw new Error("Build failed");
+  }
+
+  // 초기 빌드
+  console.log("[glendix] 초기 빌드 시작\n");
+  execBuild();
+  console.log("\n[glendix] .gleam 파일 변경 감지 활성화 — 저장 시 자동 빌드\n");
+
+  // .gleam 파일 mtime 추적
+  const mtimes = {};
+
+  function scanGleam(dir) {
+    try {
+      const entries = readdirSync(dir);
+      for (const name of entries) {
+        if (name.startsWith(".")) continue;
+        const p = dir + "/" + name;
+        try {
+          const s = statSync(p);
+          if (s.isDirectory()) scanGleam(p);
+          else if (name.endsWith(".gleam")) mtimes[p] = s.mtimeMs;
+        } catch {}
+      }
+    } catch {}
+  }
+
+  function hasChanges() {
+    let changed = false;
+    function check(dir) {
+      try {
+        const entries = readdirSync(dir);
+        for (const name of entries) {
+          if (name.startsWith(".")) continue;
+          const p = dir + "/" + name;
+          try {
+            const s = statSync(p);
+            if (s.isDirectory()) { check(p); continue; }
+            if (!name.endsWith(".gleam")) continue;
+            const prev = mtimes[p];
+            mtimes[p] = s.mtimeMs;
+            if (prev === undefined || prev !== s.mtimeMs) changed = true;
+          } catch {}
+        }
+      } catch {}
+    }
+    check("src");
+    return changed;
+  }
+
+  scanGleam("src");
+
+  const pollId = setInterval(() => {
+    if (!hasChanges()) return;
+    console.log("\n[glendix] 변경 감지 → 리빌드");
+    try {
+      execGleamFiltered("gleam build");
+      execBuild();
+      console.log("[glendix] 빌드 완료");
+    } catch {
+      // 빌드 에러는 이미 출력됨
+    }
+  }, 500);
+
+  process.on("SIGINT", () => {
+    clearInterval(pollId);
+    cleanup();
+    process.exit(130);
+  });
 }

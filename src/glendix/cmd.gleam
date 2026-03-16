@@ -8,6 +8,7 @@ pub fn exec(command: String) -> Nil
 @external(javascript, "./cmd_ffi.mjs", "file_exists")
 fn file_exists(path: String) -> Bool
 
+
 /// lock 파일 기반으로 패키지 매니저 runner를 감지한다.
 /// pnpm-lock.yaml → "pnpm exec", bun.lockb/bun.lock → "bunx", 기본 → "npx"
 pub fn detect_runner() -> String {
@@ -45,6 +46,16 @@ fn run_with_bridge(command: String) -> Nil
 /// 브릿지 JS 자동 생성 후 pluggable-widgets-tools를 실행하고, 완료 후 브릿지를 삭제한다.
 pub fn run_tool_with_bridge(args: String) -> Nil {
   run_with_bridge(detect_runner() <> " pluggable-widgets-tools " <> args)
+}
+
+/// 브릿지 JS 자동 생성 + .gleam 파일 변경 감지 + build:web 반복 실행
+@external(javascript, "./cmd_ffi.mjs", "run_dev_with_bridge")
+fn run_dev_with_bridge(build_command: String) -> Nil
+
+/// .gleam 파일 변경 감지와 함께 개발 서버를 실행한다.
+/// Rollup --watch 대신 build:web를 반복 실행한다 (Windows chokidar 오버헤드 회피).
+pub fn run_tool_dev() -> Nil {
+  run_dev_with_bridge(detect_runner() <> " pluggable-widgets-tools build:web")
 }
 
 /// bindings.json에서 바인딩 코드를 생성한다.
