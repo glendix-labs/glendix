@@ -108,6 +108,19 @@ pub fn widget(props: JsProps) -> ReactElement {
 | `glendix/mendix/filter` | FilterCondition 빌더! — `and_`, `or_`, `equals`, `contains`, `attribute`, `literal` |
 | `glendix/editor_config` | Editor Configuration 도우미! — 속성 숨기기, 탭 만들기, 순서 바꾸기 (Jint이랑 호환돼!) |
 
+### JS Interop 쪽!
+
+| 모듈 | 뭐 하는 건지! |
+|---|---|
+| `glendix/js/array` | Gleam List ↔ JS Array 변환! (react_ffi.mjs 재사용이라 FFI 파일도 필요 없어!) |
+| `glendix/js/object` | 객체 만들기, 속성 읽기/쓰기/삭제, 메서드 호출, `new`로 인스턴스 생성! |
+| `glendix/js/json` | `stringify`랑 `parse`! (parse는 `Result`로 돌려줘서 안전해!) |
+| `glendix/js/promise` | Promise 체이닝 (`then_`, `map`, `catch_`), `all`, `race`, `resolve`, `reject` — `react.Promise(a)` 타입 그대로 써! |
+| `glendix/js/dom` | DOM 조작! — `focus`, `blur`, `click`, `scroll_into_view`, `query_selector` (`Option`으로 돌려줘!) |
+| `glendix/js/timer` | `set_timeout`, `set_interval`, `clear_timeout`, `clear_interval` — `TimerId`가 opaque라서 숫자로 장난 못 쳐! |
+
+> SpreadJS 같은 외부 JS 라이브러리랑 직접 얘기해야 할 때 쓰는 escape hatch야! 전부 `Dynamic` 타입이라 타입 안전성은 없지만 엄청 유연해! `glendix/binding`으로 되는 거면 그쪽이 더 좋아!
+
 ## 예제 모음!
 
 ### Attribute 리스트
@@ -415,6 +428,18 @@ glendix/
     html.gleam              ← HTML 태그 85개 넘게! (순수 Gleam — JS 없어!)
     svg.gleam               ← SVG 요소 58개! (순수 Gleam — JS 없어!)
     svg_attribute.gleam     ← SVG 전용 속성 97개 넘게! (순수 Gleam — JS 없어!)
+  js/
+    array.gleam             ← Gleam List ↔ JS Array (FFI 없어 — react_ffi.mjs 재사용!)
+    object.gleam            ← 객체 만들기, 속성 접근, 메서드 호출!
+    object_ffi.mjs          ← 객체 JS 도우미!
+    json.gleam              ← JSON stringify/parse!
+    json_ffi.mjs            ← JSON JS 도우미!
+    promise.gleam           ← Promise 체이닝, all, race!
+    promise_ffi.mjs         ← Promise JS 도우미!
+    dom.gleam               ← DOM focus/blur/click/scroll/query!
+    dom_ffi.mjs             ← DOM JS 도우미!
+    timer.gleam             ← setTimeout/setInterval! (opaque TimerId!)
+    timer_ffi.mjs           ← 타이머 JS 도우미!
   mendix.gleam              ← Mendix 핵심 타입 + Props 접근자
   mendix_ffi.mjs            ← Mendix 런타임 타입 JS 도우미
   mendix/

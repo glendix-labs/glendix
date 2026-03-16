@@ -28,7 +28,7 @@ gleam run -m glendix/marketplace     # 마켓플레이스 위젯 다운로드
 
 ## FFI 경계 원칙 (절대 준수)
 
-1. **FFI 어댑터는 얇게.** `.mjs`는 JS 런타임 접근만 담당. 비즈니스 로직은 `.gleam`에 작성.
+1. **비즈니스 로직은 `.gleam`에 작성.** `.mjs`는 JS 런타임 접근 담당. 외부 JS 라이브러리 연동 등 필요한 경우 FFI 어댑터가 두꺼워질 수 있다.
 2. **Opaque type으로 JS 값을 감싼다.** 내부 구조 직접 접근 금지.
 3. **`undefined`/`null` ↔ `Option`.** FFI 경계에서 `to_option()`/`from_option()` 변환. Gleam에서 `undefined` 직접 사용 금지.
 4. **Gleam 튜플 = JS 배열.** `#(a, b)` ↔ `[a, b]` (useState 반환값 등).

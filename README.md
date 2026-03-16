@@ -107,6 +107,19 @@ pub fn widget(props: JsProps) -> ReactElement {
 | `glendix/mendix/filter` | FilterCondition builder — `and_`, `or_`, `equals`, `contains`, `attribute`, `literal` |
 | `glendix/editor_config` | Editor helpers — hiding attributes, making tabs, reordering things (works with Jint!) |
 
+### JS Interop Bits
+
+| Module | What It Does |
+|---|---|
+| `glendix/js/array` | Gleam List ↔ JS Array conversion (reuses react_ffi.mjs — no extra FFI!) |
+| `glendix/js/object` | Create objects, read/write/delete properties, call methods, `new` instances |
+| `glendix/js/json` | `stringify` and `parse` (parse returns a proper `Result`!) |
+| `glendix/js/promise` | Promise chaining (`then_`, `map`, `catch_`), `all`, `race`, `resolve`, `reject` — uses `react.Promise(a)` |
+| `glendix/js/dom` | DOM helpers — `focus`, `blur`, `click`, `scroll_into_view`, `query_selector` (returns `Option`!) |
+| `glendix/js/timer` | `set_timeout`, `set_interval`, `clear_timeout`, `clear_interval` — opaque `TimerId` so you can't muck about with it |
+
+> These are escape hatches for when you need to talk to JS libraries directly (like SpreadJS). Everything uses `Dynamic` — no type safety, but loads of flexibility! If you can use `glendix/binding` instead, that's usually better.
+
 ## Examples
 
 ### Attribute Lists
@@ -414,6 +427,18 @@ glendix/
     html.gleam              ← 85+ HTML tags (pure Gleam — no JS!)
     svg.gleam               ← 58 SVG elements (pure Gleam — no JS!)
     svg_attribute.gleam     ← 97+ SVG attributes (pure Gleam — no JS!)
+  js/
+    array.gleam             ← Gleam List ↔ JS Array (no FFI — reuses react_ffi.mjs!)
+    object.gleam            ← Object creation, property access, method calls
+    object_ffi.mjs          ← Object JS helper
+    json.gleam              ← JSON stringify/parse
+    json_ffi.mjs            ← JSON JS helper
+    promise.gleam           ← Promise chaining, all, race
+    promise_ffi.mjs         ← Promise JS helper
+    dom.gleam               ← DOM focus/blur/click/scroll/query
+    dom_ffi.mjs             ← DOM JS helper
+    timer.gleam             ← setTimeout/setInterval with opaque TimerId
+    timer_ffi.mjs           ← Timer JS helper
   mendix.gleam              ← Core Mendix types + Props accessors
   mendix_ffi.mjs            ← Mendix runtime type helper
   mendix/

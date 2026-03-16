@@ -108,6 +108,19 @@ pub fn widget(props: JsProps) -> ReactElement {
 | `glendix/mendix/filter` | FilterConditionビルダー！ — `and_`、`or_`、`equals`、`contains`、`attribute`、`literal` |
 | `glendix/editor_config` | Editor Configurationおたすけ！ — ぞくせいをかくす、タブにする、じゅんばんをかえる（Jintとなかよし！） |
 
+### JS Interopのところ！
+
+| モジュール | なにをするの？ |
+|---|---|
+| `glendix/js/array` | Gleam List ↔ JS Arrayへんかん！（react_ffi.mjsをつかうからべつのFFIファイルいらない！） |
+| `glendix/js/object` | オブジェクトつくる、ぞくせいよむ/かく/けす、メソッドよぶ、`new`でインスタンスつくる！ |
+| `glendix/js/json` | `stringify`と`parse`！（parseは`Result`でかえしてくれるからあんぜん！） |
+| `glendix/js/promise` | Promiseチェイニング（`then_`、`map`、`catch_`）、`all`、`race`、`resolve`、`reject` — `react.Promise(a)`のかたをそのままつかうよ！ |
+| `glendix/js/dom` | DOMおたすけ！ — `focus`、`blur`、`click`、`scroll_into_view`、`query_selector`（`Option`でかえしてくれるよ！） |
+| `glendix/js/timer` | `set_timeout`、`set_interval`、`clear_timeout`、`clear_interval` — `TimerId`はopaqueだからすうじでいたずらできないよ！ |
+
+> SpreadJSとかのJSライブラリとちょくせつおはなしするときにつかうエスケープハッチだよ！ぜんぶ`Dynamic`かただからかたあんぜんせいはないけど、すっごくじゆう！`glendix/binding`でできることならそっちのほうがいいよ！
+
 ## れいをみてみよう！
 
 ### Attributeリスト
@@ -415,6 +428,18 @@ glendix/
     html.gleam              ← HTMLタグ85こいじょう！（じゅんすいGleam — JSなし！）
     svg.gleam               ← SVGようそ58こ！（じゅんすいGleam — JSなし！）
     svg_attribute.gleam     ← SVGせんよう属性97こいじょう！（じゅんすいGleam — JSなし！）
+  js/
+    array.gleam             ← Gleam List ↔ JS Array（FFIなし — react_ffi.mjsをつかうよ！）
+    object.gleam            ← オブジェクトつくる、ぞくせいアクセス、メソッドよぶ！
+    object_ffi.mjs          ← オブジェクトJSおたすけ！
+    json.gleam              ← JSON stringify/parse！
+    json_ffi.mjs            ← JSON JSおたすけ！
+    promise.gleam           ← Promiseチェイニング、all、race！
+    promise_ffi.mjs         ← Promise JSおたすけ！
+    dom.gleam               ← DOM focus/blur/click/scroll/query！
+    dom_ffi.mjs             ← DOM JSおたすけ！
+    timer.gleam             ← setTimeout/setInterval！（opaqueなTimerId！）
+    timer_ffi.mjs           ← タイマーJSおたすけ！
   mendix.gleam              ← Mendixのだいじなかた + Propsアクセサ
   mendix_ffi.mjs            ← MendixランタイムかたJSおたすけ
   mendix/
