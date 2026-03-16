@@ -1,10 +1,60 @@
 // 셸 명령어 실행 + 파일 존재 확인 + 브릿지 자동 생성 + 바인딩 생성 FFI 어댑터
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, readdirSync } from "node:fs";
 import { inflateRawSync } from "node:zlib";
 
+// gleam_erlang 패키지의 Unused value 경고 블록을 제거한다
+function filterErlangWarnings(stderr) {
+  const lines = stderr.split(/\r?\n/);
+  const result = [];
+  let skip = false;
+  let skipNextEmpty = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (!skip && lines[i] === "warning: Unused value") {
+      if (i + 1 < lines.length && lines[i + 1].includes("gleam_erlang")) {
+        skip = true;
+        continue;
+      }
+    }
+    if (skip) {
+      if (lines[i].includes("not needed")) {
+        skip = false;
+        skipNextEmpty = true;
+      }
+      continue;
+    }
+    if (skipNextEmpty) {
+      skipNextEmpty = false;
+      if (lines[i].trim() === "") continue;
+    }
+    result.push(lines[i]);
+  }
+
+  return result.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// gleam_erlang의 Unused value 경고를 필터링하여 gleam 명령을 실행한다
+function execGleamFiltered(command) {
+  const result = spawnSync(command, { shell: true, stdio: ["inherit", "pipe", "pipe"] });
+  if (result.stdout && result.stdout.length > 0) process.stdout.write(result.stdout);
+  if (result.stderr && result.stderr.length > 0) {
+    const filtered = filterErlangWarnings(result.stderr.toString());
+    if (filtered) process.stderr.write(filtered + "\n");
+  }
+  if (result.status !== 0) {
+    const err = new Error("Command failed: " + command);
+    err.status = result.status;
+    throw err;
+  }
+}
+
 export function exec(command) {
-  execSync(command, { stdio: "inherit", shell: true });
+  if (command.startsWith("gleam ")) {
+    execGleamFiltered(command);
+  } else {
+    execSync(command, { stdio: "inherit", shell: true });
+  }
 }
 
 export function file_exists(path) {
@@ -926,7 +976,7 @@ export function run_with_bridge(command) {
   generate_widget_bindings();
 
   // Gleam 빌드 출력 보장 (Rollup이 .mjs를 resolve할 수 있도록)
-  execSync("gleam build", { stdio: "inherit", shell: true });
+  execGleamFiltered("gleam build");
 
   const widgetName = JSON.parse(readFileSync("package.json", "utf-8")).widgetName;
   const gleamProject = readFileSync("gleam.toml", "utf-8").match(/^name\s*=\s*"([^"]+)"/m)[1];
