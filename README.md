@@ -43,7 +43,7 @@ Pop this into your `gleam.toml`:
 # gleam.toml
 [dependencies]
 glendix = ">= 4.0.0 and < 5.0.0"
-mendraw = ">= 1.0.0 and < 2.0.0"
+mendraw = ">= 1.1.1 and < 2.0.0"
 ```
 
 ### Peer Dependencies
