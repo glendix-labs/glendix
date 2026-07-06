@@ -6,7 +6,7 @@ Hello! This is glendix and it's ever so brilliant! It's a Gleam library for Mend
 
 **You can write proper Mendix widgets using only Gleam — no JSX needed at all, how lovely is that!**
 
-React is handled by [redraw](https://github.com/ghivert/redraw)/[redraw_dom](https://github.com/ghivert/redraw), TEA pattern by [lustre](https://github.com/lustre-labs/lustre), and Mendix types/widgets/marketplace are delegated to [mendraw](https://github.com/GG-O-BP/mendraw).
+React is handled by [redraw](https://github.com/ghivert/redraw)/[redraw_dom](https://github.com/ghivert/redraw), TEA pattern by [lustre](https://github.com/lustre-labs/lustre), and Mendix types/widgets/marketplace are delegated to [mendraw](https://github.com/glendix-labs/mendraw).
 
 ## What's New in v4.0
 
@@ -404,7 +404,7 @@ Downloaded widgets are cached in `build/widgets/` and automatically added to you
 
 ## Thank You
 
-glendix v4.0 is built on top of the brilliant [redraw](https://github.com/ghivert/redraw), [lustre](https://github.com/lustre-labs/lustre), and [mendraw](https://github.com/GG-O-BP/mendraw) ecosystems. Cheers to all projects!
+glendix v4.0 is built on top of the brilliant [redraw](https://github.com/ghivert/redraw), [lustre](https://github.com/lustre-labs/lustre), and [mendraw](https://github.com/glendix-labs/mendraw) ecosystems. Cheers to all projects!
 
 ## Licence
 

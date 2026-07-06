@@ -7,7 +7,7 @@ Gleam이라는 언어로 Mendix Pluggable Widget을 만들 수 있게 해주는 
 
 **JSX 같은 거 없이도 순수하게 Gleam만으로 Mendix 위젯을 만들 수 있어! 완전 신기하지 않아?!**
 
-React는 [redraw](https://github.com/ghivert/redraw)/[redraw_dom](https://github.com/ghivert/redraw)이 담당하고, TEA 패턴은 [lustre](https://github.com/lustre-labs/lustre)가 담당해! Mendix 타입·위젯·마켓플레이스는 [mendraw](https://github.com/GG-O-BP/mendraw)한테 맡기고, glendix는 빌드 도구랑 바인딩에 집중하는 거야!
+React는 [redraw](https://github.com/ghivert/redraw)/[redraw_dom](https://github.com/ghivert/redraw)이 담당하고, TEA 패턴은 [lustre](https://github.com/lustre-labs/lustre)가 담당해! Mendix 타입·위젯·마켓플레이스는 [mendraw](https://github.com/glendix-labs/mendraw)한테 맡기고, glendix는 빌드 도구랑 바인딩에 집중하는 거야!
 
 ## v4.0에서 뭐가 달라졌냐면요!
 
@@ -406,7 +406,7 @@ gleam run -m mendraw/marketplace
 
 ## 고마운 분들!
 
-glendix v4.0은 멋진 [redraw](https://github.com/ghivert/redraw), [lustre](https://github.com/lustre-labs/lustre), [mendraw](https://github.com/GG-O-BP/mendraw) 생태계 위에 만들어졌어! 세 프로젝트 모두 고마워!
+glendix v4.0은 멋진 [redraw](https://github.com/ghivert/redraw), [lustre](https://github.com/lustre-labs/lustre), [mendraw](https://github.com/glendix-labs/mendraw) 생태계 위에 만들어졌어! 세 프로젝트 모두 고마워!
 
 ## 라이선스
 
